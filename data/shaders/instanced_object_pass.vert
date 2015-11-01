@@ -36,6 +36,8 @@ out vec3 bitangent;
 out vec2 uv;
 out vec2 uv_bis;
 out vec4 color;
+flat out int instance_id;
+
 #ifdef Use_Bindless_Texture
 flat out sampler2D handle;
 flat out sampler2D secondhandle;
@@ -63,4 +65,5 @@ void main(void)
     secondhandle = SecondHandle;
     thirdhandle = ThirdHandle;
 #endif
+    instance_id = gl_InstanceID; 
 }

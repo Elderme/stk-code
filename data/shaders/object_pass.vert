@@ -39,7 +39,7 @@ out vec3 bitangent;
 out vec2 uv;
 out vec2 uv_bis;
 out vec4 color;
-
+flat out int instance_id; 
 
 void main(void)
 {
@@ -54,4 +54,5 @@ void main(void)
     bitangent = (ViewMatrix * ModelMatrix * vec4(Bitangent, 0.)).xyz;
     uv = (TextureMatrix * vec4(Texcoord, 1., 1.)).xy;
     uv_bis = SecondTexcoord;
+    instance_id = gl_InstanceID; 
 }

@@ -139,6 +139,7 @@ public:
         loadProgram(OBJECT, GL_VERTEX_SHADER, "utils/getworldmatrix.vert",
                             GL_VERTEX_SHADER, "instanced_object_pass.vert",
                             GL_FRAGMENT_SHADER, "utils/getLightFactor.frag",
+                            GL_FRAGMENT_SHADER, "utils/random_hue.frag",
                             GL_FRAGMENT_SHADER, "instanced_object_pass2.frag");
         assignUniforms();
         assignSamplerNames(0, "DiffuseMap", ST_NEAREST_FILTERED,

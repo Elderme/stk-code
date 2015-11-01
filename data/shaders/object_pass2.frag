@@ -8,6 +8,7 @@ uniform sampler2D SpecMap;
 
 in vec2 uv;
 in vec4 color;
+flat in int instance_id;
 out vec4 FragColor;
 
 vec3 getLightFactor(vec3 diffuseMatColor, vec3 specularMatColor, float specMapValue, float emitMapValue);

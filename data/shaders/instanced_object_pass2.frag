@@ -9,9 +9,11 @@ flat in sampler2D secondhandle;
 #endif
 in vec2 uv;
 in vec4 color;
+flat in int instance_id;
 out vec4 FragColor;
 
 vec3 getLightFactor(vec3 diffuseMatColor, vec3 specularMatColor, float specMapValue, float emitMapValue);
+vec3 shiftHue(vec3 rgbColor, float shift);
 
 void main(void)
 {
@@ -27,6 +29,7 @@ void main(void)
     float specmap = texture(SpecMap, uv).g;
     float emitmap = texture(SpecMap, uv).b;
 #endif
+    //col.xyz = shiftHue(col.xyz, 0.5);
     col.xyz *= pow(color.xyz, vec3(2.2));
     
     FragColor = vec4(getLightFactor(col.xyz, vec3(1.), specmap, emitmap) , 1.);
