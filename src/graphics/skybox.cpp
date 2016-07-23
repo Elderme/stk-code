@@ -243,6 +243,22 @@ void Skybox::generateSpecularCubemap()
         getPermutationMatrix(0, 1., 1, -1., 2, 1.),
         getPermutationMatrix(0, -1., 1, -1., 2, -1.),
     };
+    
+    glBindVertexArray(0);
+    glActiveTexture(GL_TEXTURE0 +
+                    SpecularIBLGenerator::getInstance()->m_tu_samples);
+    GLuint sampleTex, sampleBuffer;
+                        
+    //Creation of sample buffer
+    glGenBuffers(1, &sampleBuffer);
+    glBindBuffer(GL_TEXTURE_BUFFER, sampleBuffer);
+    glBufferData(GL_TEXTURE_BUFFER, 2048 * sizeof(float), NULL, GL_STREAM_DRAW);    
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+    //Creation of sample texture buffer
+    glGenTextures(1, &sampleTex);
+    glBindTexture(GL_TEXTURE_BUFFER, sampleTex);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, sampleBuffer);    
 
     for (unsigned level = 0; level < 8; level++)
     {
@@ -252,28 +268,23 @@ void Skybox::generateSpecularCubemap()
         // NOTE : Removed because it makes too sharp reflexion
         float roughness = (8 - level) * pow(2.f, 10.f) / 8.f;
         float viewportSize = float(1 << (8 - level));
-
-        float *tmp = new float[2048];
+        
+        //update sample buffer
+        glBindBuffer(GL_TEXTURE_BUFFER, sampleBuffer);
+        float *ptr = (float*) glMapBuffer(GL_TEXTURE_BUFFER, GL_WRITE_ONLY);
         for (unsigned i = 0; i < 1024; i++)
         {
             std::pair<float, float> sample =
                 getImportanceSamplingPhong(getHammersleySequence(i, 1024),
                                         roughness);
-            tmp[2 * i] = sample.first;
-            tmp[2 * i + 1] = sample.second;
+            ptr[2 * i] = sample.first;
+            ptr[2 * i + 1] = sample.second;
         }
-
-        glBindVertexArray(0);
-        glActiveTexture(GL_TEXTURE0 +
-                        SpecularIBLGenerator::getInstance()->m_tu_samples);
-        GLuint sampleTex, sampleBuffer;
-        glGenBuffers(1, &sampleBuffer);
-        glBindBuffer(GL_TEXTURE_BUFFER, sampleBuffer);
-        glBufferData(GL_TEXTURE_BUFFER, 2048 * sizeof(float), tmp,
-                     GL_STATIC_DRAW);
-        glGenTextures(1, &sampleTex);
-        glBindTexture(GL_TEXTURE_BUFFER, sampleTex);
-        glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, sampleBuffer);
+        glUnmapBuffer(GL_TEXTURE_BUFFER);
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+        
+        
+        //draw each cube map face
         glBindVertexArray(SharedGPUObjects::getFullScreenQuadVAO());
 
         for (unsigned face = 0; face < 6; face++)
@@ -293,13 +304,12 @@ void Skybox::generateSpecularCubemap()
         }
         glActiveTexture(  GL_TEXTURE0
                         + SpecularIBLGenerator::getInstance()->m_tu_samples);
-        glBindBuffer(GL_TEXTURE_BUFFER, 0);
-        glBindTexture(GL_TEXTURE_BUFFER, 0);
-
-        delete[] tmp;
-        glDeleteTextures(1, &sampleTex);
-        glDeleteBuffers(1, &sampleBuffer);
     }
+
+    glBindTexture(GL_TEXTURE_BUFFER, 0);
+    glDeleteTextures(1, &sampleTex);
+    glDeleteBuffers(1, &sampleBuffer);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDeleteFramebuffers(1, &fbo);
     glActiveTexture(GL_TEXTURE0);
