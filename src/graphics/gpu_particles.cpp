@@ -187,7 +187,13 @@ void ParticleSystemProxy::setHeightmap(const std::vector<std::vector<float> > &h
 
     unsigned width  = (unsigned)hm.size();
     unsigned height = (unsigned)hm[0].size();
-    float *hm_array = new float[width * height];
+    has_height_map = true;
+    
+    glGenBuffers(1, &heighmapbuffer);
+    glBindBuffer(GL_TEXTURE_BUFFER, heighmapbuffer);
+    glBufferData(GL_TEXTURE_BUFFER, width * height * sizeof(float), NULL, GL_STREAM_COPY);
+    
+    float *hm_array = (float*) glMapBuffer(GL_TEXTURE_BUFFER, GL_WRITE_ONLY);
     for (unsigned i = 0; i < width; i++)
     {
         for (unsigned j = 0; j < height; j++)
@@ -195,16 +201,12 @@ void ParticleSystemProxy::setHeightmap(const std::vector<std::vector<float> > &h
             hm_array[i * height + j] = hm[i][j];
         }
     }
-    has_height_map = true;
-    glGenBuffers(1, &heighmapbuffer);
-    glBindBuffer(GL_TEXTURE_BUFFER, heighmapbuffer);
-    glBufferData(GL_TEXTURE_BUFFER, width * height * sizeof(float), hm_array, GL_STREAM_COPY);
+    glUnmapBuffer(GL_TEXTURE_BUFFER);
+    
     glGenTextures(1, &heightmaptexture);
     glBindTexture(GL_TEXTURE_BUFFER, heightmaptexture);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, heighmapbuffer);
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
-
-    delete[] hm_array;
 #endif
 }
 
