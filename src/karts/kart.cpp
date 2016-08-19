@@ -1,7 +1,7 @@
 //
 //  SuperTuxKart - a fun racing game with go-kart
-//  Copyright (C) 2004-2015 Steve Baker <sjbaker1@airmail.net>
-//  Copyright (C) 2006-2015 SuperTuxKart-Team, Joerg Henrichs, Steve Baker
+//  Copyright (C) 2004-2016 Steve Baker <sjbaker1@airmail.net>
+//  Copyright (C) 2006-2016 SuperTuxKart-Team, Joerg Henrichs, Steve Baker
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,6 +33,7 @@
 #include "graphics/particle_emitter.hpp"
 #include "graphics/particle_kind.hpp"
 #include "graphics/particle_kind_manager.hpp"
+#include "graphics/render_info.hpp"
 #include "graphics/shadow.hpp"
 #include "graphics/skid_marks.hpp"
 #include "graphics/slip_stream.hpp"
@@ -91,8 +92,7 @@
  */
 Kart::Kart (const std::string& ident, unsigned int world_kart_id,
             int position, const btTransform& init_transform,
-            PerPlayerDifficulty difficulty,
-            RenderInfo::KartRenderType krt)
+            PerPlayerDifficulty difficulty, KartRenderType krt)
      : AbstractKart(ident, world_kart_id, position, init_transform,
              difficulty, krt)
 
@@ -1001,7 +1001,7 @@ void Kart::collectedItem(Item *item, int add_info)
  */
 float Kart::getStartupBoost() const
 {
-    float t = World::getWorld()->getTime();
+    float t = World::getWorld()->getTimeSinceStart();
     std::vector<float> startup_times = m_kart_properties->getStartupTime();
     for (unsigned int i = 0; i < startup_times.size(); i++)
     {
@@ -1991,9 +1991,9 @@ void Kart::crashed(const Material *m, const Vec3 &normal)
  */
 void Kart::playCrashSFX(const Material* m, AbstractKart *k)
 {
-    if(World::getWorld()->getTime()-m_time_last_crash < 0.5f) return;
+    if(World::getWorld()->getTimeSinceStart()-m_time_last_crash < 0.5f) return;
 
-    m_time_last_crash = World::getWorld()->getTime();
+    m_time_last_crash = World::getWorld()->getTimeSinceStart();
     // After a collision disable the engine for a short time so that karts
     // can 'bounce back' a bit (without this the engine force will prevent
     // karts from bouncing back, they will instead stuck towards the obstable).
@@ -2110,6 +2110,7 @@ void Kart::updatePhysics(float dt)
     {
         m_has_started = true;
         float f       = getStartupBoost();
+        if(f >= 0.0f)   m_kart_gfx->setCreationRateAbsolute(KartGFX::KGFX_ZIPPER, 100*f);
         m_max_speed->instantSpeedIncrease(MaxSpeed::MS_INCREASE_ZIPPER,
                                           0.9f*f, f,
                                           /*engine_force*/200.0f,

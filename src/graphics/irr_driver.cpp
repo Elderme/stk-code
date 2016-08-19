@@ -216,8 +216,10 @@ GPUTimer &IrrDriver::getGPUTimer(unsigned i)
 void IrrDriver::computeMatrixesAndCameras(scene::ICameraSceneNode *const camnode,
                                           size_t width, size_t height)
 {
-    m_current_screen_size = core::vector2df(float(width), float(height));
-    m_shadow_matrices->computeMatrixesAndCameras(camnode, width, height);
+    float w = width * UserConfigParams::m_scale_rtts_factor;
+    float h = height * UserConfigParams::m_scale_rtts_factor;
+    m_current_screen_size = core::vector2df(w, h);
+    m_shadow_matrices->computeMatrixesAndCameras(camnode, w, h);
 }   // computeMatrixesAndCameras
 
 // ----------------------------------------------------------------------------
@@ -671,7 +673,9 @@ void IrrDriver::setMaxTextureSize()
     if( (UserConfigParams::m_high_definition_textures & 0x01) == 0)
     {
         io::IAttributes &att = m_video_driver->getNonConstDriverAttributes();
-        att.setAttribute("MAX_TEXTURE_SIZE", core::dimension2du(512, 512));
+        att.setAttribute("MAX_TEXTURE_SIZE", core::dimension2du(
+                                        UserConfigParams::m_max_texture_size, 
+                                        UserConfigParams::m_max_texture_size));
     }
 }   // setMaxTextureSize
 

@@ -43,7 +43,6 @@ class ModelDefinitionLoader;
 #include "items/item.hpp"
 #include "scriptengine/script_engine.hpp"
 #include "tracks/quad_graph.hpp"
-#include "tracks/battle_graph.hpp"
 #include "utils/aligned_array.hpp"
 #include "utils/translation.hpp"
 #include "utils/vec3.hpp"
@@ -57,7 +56,6 @@ class MusicInformation;
 class ParticleEmitter;
 class ParticleKind;
 class PhysicalObject;
-class RenderInfo;
 class TrackObject;
 class TrackObjectManager;
 class TriangleMesh;
@@ -458,8 +456,7 @@ public:
     // ------------------------------------------------------------------------
     void loadObjects(const XMLNode* root, const std::string& path,
         ModelDefinitionLoader& lod_loader, bool create_lod_definitions,
-        scene::ISceneNode* parent, TrackObject* parent_library,
-        RenderInfo* ri);
+        scene::ISceneNode* parent, TrackObject* parent_library);
     // ------------------------------------------------------------------------
     bool               isSoccer             () const { return m_is_soccer; }
     // ------------------------------------------------------------------------
