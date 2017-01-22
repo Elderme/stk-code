@@ -96,6 +96,10 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
         code << "#extension GL_ARB_bindless_texture : enable\n";
         code << "#define Use_Bindless_Texture\n";
     }
+    
+    if(CVS->supportsIndirectInstancingRendering())
+        code << "#define Use_Instancing\n";
+    
     code << "//" << file << "\n";
     if (!CVS->isARBUniformBufferObjectUsable())
         code << "#define UBO_DISABLED\n";
