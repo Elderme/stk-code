@@ -141,13 +141,13 @@ InstancedShadowShader::InstancedShadowShader()
         return;
     if (CVS->isAMDVertexShaderLayerUsable())
     {
-        loadProgram(OBJECT, GL_VERTEX_SHADER, "instanced_shadow.vert",
+        loadProgram(OBJECT, GL_VERTEX_SHADER, "shadow.vert",
                             GL_FRAGMENT_SHADER, "shadow.frag");
     }
     else
     {
-        loadProgram(OBJECT, GL_VERTEX_SHADER, "instanced_shadow.vert",
-                            GL_GEOMETRY_SHADER, "instanced_shadow.geom",
+        loadProgram(OBJECT, GL_VERTEX_SHADER, "shadow.vert",
+                            GL_GEOMETRY_SHADER, "shadow.geom",
                             GL_FRAGMENT_SHADER, "shadow.frag");
     }
     assignUniforms("layer");
@@ -312,13 +312,13 @@ InstancedRefShadowShader::InstancedRefShadowShader()
         return;
     if (CVS->isAMDVertexShaderLayerUsable())
     {
-        loadProgram(OBJECT, GL_VERTEX_SHADER, "instanced_shadow.vert",
+        loadProgram(OBJECT, GL_VERTEX_SHADER, "shadow.vert",
                             GL_FRAGMENT_SHADER, "instanced_shadowref.frag");
     }
     else
     {
-        loadProgram(OBJECT, GL_VERTEX_SHADER, "instanced_shadow.vert",
-                            GL_GEOMETRY_SHADER, "instanced_shadow.geom",
+        loadProgram(OBJECT, GL_VERTEX_SHADER, "shadow.vert",
+                            GL_GEOMETRY_SHADER, "shadow.geom",
                             GL_FRAGMENT_SHADER, "instanced_shadowref.frag");
     }
     assignUniforms("layer");
@@ -415,7 +415,7 @@ InstancedGrassShadowShader::InstancedGrassShadowShader()
     else
     {
         loadProgram(OBJECT, GL_VERTEX_SHADER, "instanced_grassshadow.vert",
-                            GL_GEOMETRY_SHADER, "instanced_shadow.geom",
+                            GL_GEOMETRY_SHADER, "shadow.geom",
                             GL_FRAGMENT_SHADER, "instanced_shadowref.frag");
     }
     assignSamplerNames(0, "tex", ST_TRILINEAR_ANISOTROPIC_FILTERED);
@@ -685,7 +685,7 @@ InstancedSkinnedShadowShader::InstancedSkinnedShadowShader()
     {
         loadProgram(SKINNED_MESH,
                     GL_VERTEX_SHADER, "instanced_skinning_shadow.vert",
-                    GL_GEOMETRY_SHADER, "instanced_shadow.geom",
+                    GL_GEOMETRY_SHADER, "shadow.geom",
                     GL_FRAGMENT_SHADER, "shadow.frag");
     }
     assignUniforms("layer");
@@ -732,7 +732,7 @@ InstancedSkinnedRefShadowShader::InstancedSkinnedRefShadowShader()
     {
         loadProgram(SKINNED_MESH,
                     GL_VERTEX_SHADER, "instanced_skinning_shadow.vert",
-                    GL_GEOMETRY_SHADER, "instanced_shadow.geom",
+                    GL_GEOMETRY_SHADER, "shadow.geom",
                     GL_FRAGMENT_SHADER, "instanced_shadowref.frag");
     }
     assignUniforms("layer");
