@@ -52,14 +52,11 @@ const std::string& ShaderFilesManager::getHeader()
 }   // getHeader
 
 // ----------------------------------------------------------------------------
-/** Loads a single shader. This is NOT cached, use addShaderFile for that.
- *  \param file Filename of the shader to load.
+/** Returns a string with GLSL preprocessor directives depending on hardware
  *  \param type Type of the shader.
  */
-GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
+std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
 {
-    const GLuint id = glCreateShader(type);
-
     std::ostringstream code;
 #if !defined(USE_GLES2)
     code << "#version " << CVS->getGLSLVersion()<<"\n";
@@ -99,7 +96,7 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
         code << "#extension GL_ARB_bindless_texture : enable\n";
         code << "#define Use_Bindless_Texture\n";
     }
-    code << "//" << file << "\n";
+
     if (!CVS->isARBUniformBufferObjectUsable())
         code << "#define UBO_DISABLED\n";
     if (CVS->isAMDVertexShaderLayerUsable())
@@ -123,7 +120,22 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
         code << "precision mediump float;\n";
 #endif
     code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";
+    
+    return code.str();
+}
 
+// ----------------------------------------------------------------------------
+/** Loads a single shader. This is NOT cached, use addShaderFile for that.
+ *  \param file Filename of the shader to load.
+ *  \param type Type of the shader.
+ */
+GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
+{
+    const GLuint id = glCreateShader(type);
+
+    std::ostringstream code;
+    
+    code << getPreprocessorDirectives(type);
     code << getHeader();
 
     std::ifstream stream(file_manager->getShader(file), std::ios::in);
