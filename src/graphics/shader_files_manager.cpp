@@ -26,6 +26,9 @@
 #include <fstream>
 #include <sstream>
 
+
+std::unordered_map<std::string, std::pair<int, std::string>> ShaderFilesManager::m_attributes;
+
 // ----------------------------------------------------------------------------
 /** Returns a string with the content of header.txt (which contains basic
  *  shader defines).
@@ -122,6 +125,52 @@ std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
     code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";
     
     return code.str();
+}
+
+// ----------------------------------------------------------------------------
+/** Return a string with the declaration of the attributes defined in attributes vector
+ *  \param attributes The list of the vertex attributes to be used in shader
+ */
+std::string ShaderFilesManager::genAttributesDeclaration(const std::vector<std::string>& attributes) const
+{
+    std::ostringstream code;
+
+    for(std::string attribute: attributes)
+    {
+        auto it = m_attributes.find(attribute);
+        if(it == m_attributes.end())
+        {
+            Log::error("ShaderFilesManager", "Unknow attribute '%s'", attribute.c_str());
+            continue;
+        }
+        if(CVS->getGLSLVersion() >=330)
+        {
+            //write for example: "layout(location = 0) in vec3 Position;"
+            code << "layout(location = " << it->second.first << ") in ";
+            code << it->second.second  << " " << attribute << ";\n";
+        }
+        else
+        {
+            //write for example: "in vec3 Position;"
+            code << "layout(location = " << it->second.first << ") in ";
+            code << it->second.second  << " " << attribute << ";\n";
+        }
+    }
+    
+    return code.str();
+}
+
+// ----------------------------------------------------------------------------
+ShaderFilesManager::ShaderFilesManager()
+{
+    m_attributes["Position"]       = std::make_pair<int, std::string>(0,"vec3");
+    m_attributes["Normal"]         = std::make_pair<int, std::string>(1,"vec3");
+    m_attributes["Color"]          = std::make_pair<int, std::string>(2,"vec4");
+    m_attributes["Texcoord"]       = std::make_pair<int, std::string>(3,"vec2");
+    m_attributes["SecondTexcoord"] = std::make_pair<int, std::string>(4,"vec2");
+    m_attributes["Tangent"]        = std::make_pair<int, std::string>(5,"vec3");
+    m_attributes["Bitangent"]      = std::make_pair<int, std::string>(6,"vec3");
+    
 }
 
 // ----------------------------------------------------------------------------

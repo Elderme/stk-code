@@ -32,6 +32,12 @@ class ShaderFilesManager : public Singleton<ShaderFilesManager>, NoCopy
 {
 private:
     /**
+     * Map from a vertex shader attribute to attribute location and GLSL type.
+     * Used to generate material shaders.
+     */
+    static std::unordered_map<std::string, std::pair<int, std::string>> m_attributes;
+
+    /**
      * Map from a filename to a shader indentifier. Used for caching shaders.
      */
     std::unordered_map<std::string, GLuint> m_shader_files_loaded;
@@ -40,10 +46,12 @@ private:
     const std::string& getHeader();
     // ------------------------------------------------------------------------    
     std::string getPreprocessorDirectives(unsigned type) const;
+    // ------------------------------------------------------------------------    
+    std::string genAttributesDeclaration(const std::vector<std::string>& attributes) const;
     
 public:
     // ------------------------------------------------------------------------
-    ShaderFilesManager() {}
+    ShaderFilesManager();
     // ------------------------------------------------------------------------
     ~ShaderFilesManager()                                          { clean(); }
     // ------------------------------------------------------------------------
