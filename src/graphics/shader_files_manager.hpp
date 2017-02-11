@@ -44,12 +44,16 @@ private:
     std::unordered_map<std::string, GLuint> m_shader_files_loaded;
 
     // ------------------------------------------------------------------------
-    const std::string& getHeader();
+    const std::string& getHeader() const;
     // ------------------------------------------------------------------------    
     std::string getPreprocessorDirectives(unsigned type) const;
     // ------------------------------------------------------------------------    
     std::string genAttributesDeclaration(const std::vector<std::string>& attributes) const;
-    
+    // ------------------------------------------------------------------------    
+    std::string getShaderSourceFromFile(const std::string &file, unsigned type) const;
+    // ------------------------------------------------------------------------    
+    GLuint loadShaderFromSource(const std::string &source, unsigned type) const;
+
 public:
     // ------------------------------------------------------------------------
     ShaderFilesManager();

@@ -33,7 +33,7 @@ std::unordered_map<std::string, std::pair<int, std::string>> ShaderFilesManager:
 /** Returns a string with the content of header.txt (which contains basic
  *  shader defines).
  */
-const std::string& ShaderFilesManager::getHeader()
+const std::string& ShaderFilesManager::getHeader() const
 {
     // Stores the content of header.txt, to avoid reading this file repeatedly.
     static std::string shader_header;
@@ -125,7 +125,7 @@ std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
     code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";
     
     return code.str();
-}
+} //getPreprocessorDirectives
 
 // ----------------------------------------------------------------------------
 /** Return a string with the declaration of the attributes defined in attributes vector
@@ -158,30 +158,11 @@ std::string ShaderFilesManager::genAttributesDeclaration(const std::vector<std::
     }
     
     return code.str();
-}
+} //genAttributesDeclaration
 
 // ----------------------------------------------------------------------------
-ShaderFilesManager::ShaderFilesManager()
+std::string ShaderFilesManager::getShaderSourceFromFile(const std::string &file, unsigned type) const
 {
-    m_attributes["Position"]       = std::make_pair<int, std::string>(0,"vec3");
-    m_attributes["Normal"]         = std::make_pair<int, std::string>(1,"vec3");
-    m_attributes["Color"]          = std::make_pair<int, std::string>(2,"vec4");
-    m_attributes["Texcoord"]       = std::make_pair<int, std::string>(3,"vec2");
-    m_attributes["SecondTexcoord"] = std::make_pair<int, std::string>(4,"vec2");
-    m_attributes["Tangent"]        = std::make_pair<int, std::string>(5,"vec3");
-    m_attributes["Bitangent"]      = std::make_pair<int, std::string>(6,"vec3");
-    
-}
-
-// ----------------------------------------------------------------------------
-/** Loads a single shader. This is NOT cached, use addShaderFile for that.
- *  \param file Filename of the shader to load.
- *  \param type Type of the shader.
- */
-GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
-{
-    const GLuint id = glCreateShader(type);
-
     std::ostringstream code;
     
     code << getPreprocessorDirectives(type);
@@ -249,10 +230,16 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
     else
     {
         Log::error("ShaderFilesManager", "Can not open '%s'.", file.c_str());
-    }
+    }    
+    
+    return code.str();
+} //getShaderSourceFromFile
 
-    Log::info("ShaderFilesManager", "Compiling shader : %s", file.c_str());
-    const std::string &source  = code.str();
+// ----------------------------------------------------------------------------    
+GLuint ShaderFilesManager::loadShaderFromSource(const std::string &source, unsigned type) const
+{
+    const GLuint id = glCreateShader(type);
+
     char const *source_pointer = source.c_str();
     int len                    = source.size();
     glShaderSource(id, 1, &source_pointer, &len);
@@ -264,7 +251,6 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
     {
         // failed to compile
         int info_length;
-        Log::error("ShaderFilesManager", "Error in shader %s", file.c_str());
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &info_length);
         if (info_length < 0)
             info_length = 1024;
@@ -273,9 +259,37 @@ GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
         glGetShaderInfoLog(id, info_length, NULL, error_message);
         Log::error("ShaderFilesManager", error_message);
         delete[] error_message;
+        return 0;
     }
     glGetError();
 
+    return id;    
+} //loadShaderFromSource
+
+// ----------------------------------------------------------------------------
+ShaderFilesManager::ShaderFilesManager()
+{
+    m_attributes["Position"]       = std::make_pair<int, std::string>(0,"vec3");
+    m_attributes["Normal"]         = std::make_pair<int, std::string>(1,"vec3");
+    m_attributes["Color"]          = std::make_pair<int, std::string>(2,"vec4");
+    m_attributes["Texcoord"]       = std::make_pair<int, std::string>(3,"vec2");
+    m_attributes["SecondTexcoord"] = std::make_pair<int, std::string>(4,"vec2");
+    m_attributes["Tangent"]        = std::make_pair<int, std::string>(5,"vec3");
+    m_attributes["Bitangent"]      = std::make_pair<int, std::string>(6,"vec3");
+    
+}
+
+// ----------------------------------------------------------------------------
+/** Loads a single shader. This is NOT cached, use addShaderFile for that.
+ *  \param file Filename of the shader to load.
+ *  \param type Type of the shader.
+ */
+GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
+{
+    Log::info("ShaderFilesManager", "Compiling shader : %s", file.c_str());
+    GLuint id = loadShaderFromSource(getShaderSourceFromFile(file, type), type);
+    if(!id)
+        Log::error("ShaderFilesManager", "Error in shader %s", file.c_str());
     return id;
 } // loadShader
 
