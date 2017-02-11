@@ -143,7 +143,7 @@ std::string ShaderFilesManager::genAttributesDeclaration(const std::vector<std::
             Log::error("ShaderFilesManager", "Unknow attribute '%s'", attribute.c_str());
             continue;
         }
-        if(CVS->getGLSLVersion() >=330)
+        if (CVS->isARBExplicitAttribLocationUsable())
         {
             //write for example: "layout(location = 0) in vec3 Position;"
             code << "layout(location = " << it->second.first << ") in ";

@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 class ShaderFilesManager : public Singleton<ShaderFilesManager>, NoCopy
 {
