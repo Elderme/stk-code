@@ -1,0 +1,15 @@
+<!--
+Containt the solid material shader.
+This material has one of the most basic shaders avaliable
+-->
+ 
+ <material_shaders>
+    <!-- Configuration flags -->
+    <flags
+        unlite="false"
+        cast_shadow="true"
+        normal_map="false"
+        alpha_ref="false"
+        wind_sensitive="false"
+    />
+</material_shaders>

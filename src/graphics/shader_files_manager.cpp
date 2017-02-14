@@ -21,6 +21,7 @@
 #include "graphics/central_settings.hpp"
 #include "graphics/shared_gpu_objects.hpp"
 #include "io/file_manager.hpp"
+#include "io/xml_node.hpp"
 #include "utils/log.hpp"
 
 #include <fstream>
@@ -28,6 +29,21 @@
 
 
 std::unordered_map<std::string, std::pair<int, std::string>> ShaderFilesManager::m_attributes;
+
+// ----------------------------------------------------------------------------
+std::string ShaderFilesManager::readShaderFile(const std::string& file) const
+{
+    std::string shader_source;
+    std::ifstream stream(file_manager->getShader(file), std::ios::in);
+    if (stream.is_open())
+    {
+        std::string line = "";
+        while (std::getline(stream, line))
+            shader_source += "\n" + line;
+        stream.close();
+    }
+    return shader_source;
+}
 
 // ----------------------------------------------------------------------------
 /** Returns a string with the content of header.txt (which contains basic
@@ -40,27 +56,45 @@ const std::string& ShaderFilesManager::getHeader() const
 
     // Only read file first time
     if (shader_header.empty())
-    {
-        std::ifstream stream(file_manager->getShader("header.txt"), std::ios::in);
-        if (stream.is_open())
-        {
-            std::string line = "";
-            while (std::getline(stream, line))
-                shader_header += "\n" + line;
-            stream.close();
-        }
-    }   // if shader_header.empty()
+        shader_header = readShaderFile("header.txt");
 
     return shader_header;
 }   // getHeader
 
 // ----------------------------------------------------------------------------
-/** Returns a string with GLSL preprocessor directives depending on hardware
+/** Returns a string with the content of generic_per_instance_vertex_data.vert
+ */
+const std::string& ShaderFilesManager::getGenericPerInstanceVertexData() const
+{
+    // Stores the content of generic_per_instance_vertex_data.vert, to avoid reading this file repeatedly.
+    static std::string per_instance_data;
+
+    // Only read file first time
+    if (per_instance_data.empty())
+        per_instance_data = readShaderFile("material_shaders/generic_per_instance_vertex_data.vert");
+
+    return per_instance_data;    
+}
+
+// ------------------------------------------------------------------------
+const std::string& ShaderFilesManager::getGenericSolidFirstPassVertexShader() const
+{
+    // Stores the content of generic_solid_first_pass.vert, to avoid reading this file repeatedly.
+    static std::string per_instance_data;
+
+    // Only read file first time
+    if (per_instance_data.empty())
+        per_instance_data = readShaderFile("material_shaders/generic_solid_first_pass.vert");
+
+    return per_instance_data;    
+}
+
+// ----------------------------------------------------------------------------
+/** Write GLSL preprocessor directives depending on hardware
  *  \param type Type of the shader.
  */
-std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
+void ShaderFilesManager::writePreprocessorDirectives(unsigned type, std::ostringstream &code) const
 {
-    std::ostringstream code;
 #if !defined(USE_GLES2)
     code << "#version " << CVS->getGLSLVersion()<<"\n";
 #else
@@ -100,6 +134,9 @@ std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
         code << "#define Use_Bindless_Texture\n";
     }
 
+    if(CVS->supportsIndirectInstancingRendering())
+        code << "#define Use_Instancing\n";
+
     if (!CVS->isARBUniformBufferObjectUsable())
         code << "#define UBO_DISABLED\n";
     if (CVS->isAMDVertexShaderLayerUsable())
@@ -122,50 +159,41 @@ std::string ShaderFilesManager::getPreprocessorDirectives(unsigned type) const
     else
         code << "precision mediump float;\n";
 #endif
-    code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";
-    
-    return code.str();
-} //getPreprocessorDirectives
+    code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";    
+} //writePreprocessorDirectives
 
 // ----------------------------------------------------------------------------
-/** Return a string with the declaration of the attributes defined in attributes vector
- *  \param attributes The list of the vertex attributes to be used in shader
+/** Return a string with the declaration of an attribute
+ *  \param attribute The name of the vertex attributes to be used in shader
  */
-std::string ShaderFilesManager::genAttributesDeclaration(const std::vector<std::string>& attributes) const
+void ShaderFilesManager::writeAttributeDeclaration(const std::string &attribute, std::ostringstream &code) const
 {
-    std::ostringstream code;
-
-    for(std::string attribute: attributes)
+    auto it = m_attributes.find(attribute);
+    if(it == m_attributes.end())
     {
-        auto it = m_attributes.find(attribute);
-        if(it == m_attributes.end())
-        {
-            Log::error("ShaderFilesManager", "Unknow attribute '%s'", attribute.c_str());
-            continue;
-        }
-        if (CVS->isARBExplicitAttribLocationUsable())
-        {
-            //write for example: "layout(location = 0) in vec3 Position;"
-            code << "layout(location = " << it->second.first << ") in ";
-            code << it->second.second  << " " << attribute << ";\n";
-        }
-        else
-        {
-            //write for example: "in vec3 Position;"
-            code << "layout(location = " << it->second.first << ") in ";
-            code << it->second.second  << " " << attribute << ";\n";
-        }
+        Log::error("ShaderFilesManager", "Unknow attribute '%s'", attribute.c_str());
+        return;
     }
-    
-    return code.str();
-} //genAttributesDeclaration
+    if (CVS->isARBExplicitAttribLocationUsable())
+    {
+        //write for example: "layout(location = 0) in vec3 Position;"
+        code << "layout(location = " << it->second.first << ") in ";
+        code << it->second.second  << " " << attribute << ";\n";
+    }
+    else
+    {
+        //write for example: "in vec3 Position;"
+        code << "layout(location = " << it->second.first << ") in ";
+        code << it->second.second  << " " << attribute << ";\n";
+    }
+} //writeAttributeDeclaration
 
 // ----------------------------------------------------------------------------
 std::string ShaderFilesManager::getShaderSourceFromFile(const std::string &file, unsigned type) const
 {
     std::ostringstream code;
     
-    code << getPreprocessorDirectives(type);
+    writePreprocessorDirectives(type, code);
     code << getHeader();
 
     std::ifstream stream(file_manager->getShader(file), std::ios::in);
@@ -267,6 +295,60 @@ GLuint ShaderFilesManager::loadShaderFromSource(const std::string &source, unsig
 } //loadShaderFromSource
 
 // ----------------------------------------------------------------------------
+std::string ShaderFilesManager::genFirstPassVertexShaderSource(
+    const XMLNode &flags_node,
+    const XMLNode &vertex_shader_node)
+{
+    std::ostringstream code;
+
+    writePreprocessorDirectives(GL_VERTEX_SHADER, code);
+
+    bool wind_sensitive;
+    flags_node.get("wind_sensitive", &wind_sensitive);
+    if(wind_sensitive)
+        code << "#define Wind_sensitive;\n";
+    
+    bool has_normal_map;
+    flags_node.get("normal_map", &has_normal_map);
+    if(has_normal_map)
+        code << "#define Has_normal_map;\n";    
+    
+    bool use_alpha;
+    flags_node.get("alpha_ref", &use_alpha);
+    if(use_alpha)
+        code << "#define Use_alpha;\n"; 
+    
+    code << getHeader();
+    
+    writeAttributeDeclaration("Position", code);
+    writeAttributeDeclaration("Normal", code);
+    writeAttributeDeclaration("Texcoord", code);
+    if(has_normal_map)
+    {
+        writeAttributeDeclaration("Tangent", code);
+        writeAttributeDeclaration("Bitangent", code);       
+    }
+   
+    if (CVS->isAZDOEnabled())
+    {
+        if(use_alpha)
+            code << "layout(location = 11) in sampler2D Handle;\n";
+        
+        code << "layout(location = 12) in sampler2D SecondHandle;\n";
+        
+        if(has_normal_map)
+            code << "layout(location = 14) in sampler2D FourthHandle;\n";
+    }
+
+    code << "\n";
+    code << getGenericPerInstanceVertexData();
+    code << "\n";
+    code << getGenericSolidFirstPassVertexShader();
+    
+    return code.str();
+}
+
+// ----------------------------------------------------------------------------
 ShaderFilesManager::ShaderFilesManager()
 {
     m_attributes["Position"]       = std::make_pair<int, std::string>(0,"vec3");
@@ -276,7 +358,6 @@ ShaderFilesManager::ShaderFilesManager()
     m_attributes["SecondTexcoord"] = std::make_pair<int, std::string>(4,"vec2");
     m_attributes["Tangent"]        = std::make_pair<int, std::string>(5,"vec3");
     m_attributes["Bitangent"]      = std::make_pair<int, std::string>(6,"vec3");
-    
 }
 
 // ----------------------------------------------------------------------------
