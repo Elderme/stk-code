@@ -12,4 +12,17 @@ This material has one of the most basic shaders avaliable
         alpha_ref="false"
         wind_sensitive="false"
     />
+    
+    <rendering_passes>
+        <solid_first_pass
+            use_generic_shader="true"
+        />
+        <solid_second_pass
+            use_generic_shader="true"
+        />
+        <shadow_pass
+            use_generic_shader="true"
+        />        
+    </rendering_passes>
+
 </material_shaders>

@@ -21,14 +21,24 @@
 #include "graphics/central_settings.hpp"
 #include "graphics/shared_gpu_objects.hpp"
 #include "io/file_manager.hpp"
-#include "io/xml_node.hpp"
 #include "utils/log.hpp"
 
 #include <fstream>
 #include <sstream>
 
-
-std::unordered_map<std::string, std::pair<int, std::string>> ShaderFilesManager::m_attributes;
+// ----------------------------------------------------------------------------
+/** Loads a single shader. This is NOT cached, use addShaderFile for that.
+ *  \param file Filename of the shader to load.
+ *  \param type Type of the shader.
+ */
+GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
+{
+    Log::info("ShaderFilesManager", "Compiling shader : %s", file.c_str());
+    GLuint id = loadShaderFromSource(getShaderSourceFromFile(file, type), type);
+    if(!id)
+        Log::error("ShaderFilesManager", "Error in shader %s", file.c_str());
+    return id;
+} // loadShader
 
 // ----------------------------------------------------------------------------
 std::string ShaderFilesManager::readShaderFile(const std::string& file) const
@@ -60,34 +70,6 @@ const std::string& ShaderFilesManager::getHeader() const
 
     return shader_header;
 }   // getHeader
-
-// ----------------------------------------------------------------------------
-/** Returns a string with the content of generic_per_instance_vertex_data.vert
- */
-const std::string& ShaderFilesManager::getGenericPerInstanceVertexData() const
-{
-    // Stores the content of generic_per_instance_vertex_data.vert, to avoid reading this file repeatedly.
-    static std::string per_instance_data;
-
-    // Only read file first time
-    if (per_instance_data.empty())
-        per_instance_data = readShaderFile("material_shaders/generic_per_instance_vertex_data.vert");
-
-    return per_instance_data;    
-}
-
-// ------------------------------------------------------------------------
-const std::string& ShaderFilesManager::getGenericSolidFirstPassVertexShader() const
-{
-    // Stores the content of generic_solid_first_pass.vert, to avoid reading this file repeatedly.
-    static std::string per_instance_data;
-
-    // Only read file first time
-    if (per_instance_data.empty())
-        per_instance_data = readShaderFile("material_shaders/generic_solid_first_pass.vert");
-
-    return per_instance_data;    
-}
 
 // ----------------------------------------------------------------------------
 /** Write GLSL preprocessor directives depending on hardware
@@ -161,32 +143,6 @@ void ShaderFilesManager::writePreprocessorDirectives(unsigned type, std::ostring
 #endif
     code << "#define MAX_BONES " << SharedGPUObjects::getMaxMat4Size() << "\n";    
 } //writePreprocessorDirectives
-
-// ----------------------------------------------------------------------------
-/** Return a string with the declaration of an attribute
- *  \param attribute The name of the vertex attributes to be used in shader
- */
-void ShaderFilesManager::writeAttributeDeclaration(const std::string &attribute, std::ostringstream &code) const
-{
-    auto it = m_attributes.find(attribute);
-    if(it == m_attributes.end())
-    {
-        Log::error("ShaderFilesManager", "Unknow attribute '%s'", attribute.c_str());
-        return;
-    }
-    if (CVS->isARBExplicitAttribLocationUsable())
-    {
-        //write for example: "layout(location = 0) in vec3 Position;"
-        code << "layout(location = " << it->second.first << ") in ";
-        code << it->second.second  << " " << attribute << ";\n";
-    }
-    else
-    {
-        //write for example: "in vec3 Position;"
-        code << "layout(location = " << it->second.first << ") in ";
-        code << it->second.second  << " " << attribute << ";\n";
-    }
-} //writeAttributeDeclaration
 
 // ----------------------------------------------------------------------------
 std::string ShaderFilesManager::getShaderSourceFromFile(const std::string &file, unsigned type) const
@@ -295,86 +251,6 @@ GLuint ShaderFilesManager::loadShaderFromSource(const std::string &source, unsig
 } //loadShaderFromSource
 
 // ----------------------------------------------------------------------------
-std::string ShaderFilesManager::genFirstPassVertexShaderSource(
-    const XMLNode &flags_node,
-    const XMLNode &vertex_shader_node)
-{
-    std::ostringstream code;
-
-    writePreprocessorDirectives(GL_VERTEX_SHADER, code);
-
-    bool wind_sensitive;
-    flags_node.get("wind_sensitive", &wind_sensitive);
-    if(wind_sensitive)
-        code << "#define Wind_sensitive;\n";
-    
-    bool has_normal_map;
-    flags_node.get("normal_map", &has_normal_map);
-    if(has_normal_map)
-        code << "#define Has_normal_map;\n";    
-    
-    bool use_alpha;
-    flags_node.get("alpha_ref", &use_alpha);
-    if(use_alpha)
-        code << "#define Use_alpha;\n"; 
-    
-    code << getHeader();
-    
-    writeAttributeDeclaration("Position", code);
-    writeAttributeDeclaration("Normal", code);
-    writeAttributeDeclaration("Texcoord", code);
-    if(has_normal_map)
-    {
-        writeAttributeDeclaration("Tangent", code);
-        writeAttributeDeclaration("Bitangent", code);       
-    }
-   
-    if (CVS->isAZDOEnabled())
-    {
-        if(use_alpha)
-            code << "layout(location = 11) in sampler2D Handle;\n";
-        
-        code << "layout(location = 12) in sampler2D SecondHandle;\n";
-        
-        if(has_normal_map)
-            code << "layout(location = 14) in sampler2D FourthHandle;\n";
-    }
-
-    code << "\n";
-    code << getGenericPerInstanceVertexData();
-    code << "\n";
-    code << getGenericSolidFirstPassVertexShader();
-    
-    return code.str();
-}
-
-// ----------------------------------------------------------------------------
-ShaderFilesManager::ShaderFilesManager()
-{
-    m_attributes["Position"]       = std::make_pair<int, std::string>(0,"vec3");
-    m_attributes["Normal"]         = std::make_pair<int, std::string>(1,"vec3");
-    m_attributes["Color"]          = std::make_pair<int, std::string>(2,"vec4");
-    m_attributes["Texcoord"]       = std::make_pair<int, std::string>(3,"vec2");
-    m_attributes["SecondTexcoord"] = std::make_pair<int, std::string>(4,"vec2");
-    m_attributes["Tangent"]        = std::make_pair<int, std::string>(5,"vec3");
-    m_attributes["Bitangent"]      = std::make_pair<int, std::string>(6,"vec3");
-}
-
-// ----------------------------------------------------------------------------
-/** Loads a single shader. This is NOT cached, use addShaderFile for that.
- *  \param file Filename of the shader to load.
- *  \param type Type of the shader.
- */
-GLuint ShaderFilesManager::loadShader(const std::string &file, unsigned type)
-{
-    Log::info("ShaderFilesManager", "Compiling shader : %s", file.c_str());
-    GLuint id = loadShaderFromSource(getShaderSourceFromFile(file, type), type);
-    if(!id)
-        Log::error("ShaderFilesManager", "Error in shader %s", file.c_str());
-    return id;
-} // loadShader
-
-// ----------------------------------------------------------------------------
 /** Loads a single shader file, and add it to the loaded (cached) list
  *  \param file Filename of the shader to load.
  *  \param type Type of the shader.
@@ -408,5 +284,7 @@ GLuint ShaderFilesManager::getShaderFile(const std::string &file, unsigned type)
    // add to the cache now
    return addShaderFile(file, type);
 }   // getShaderFile
+
+
 
 #endif   // !SERVER_ONLY
