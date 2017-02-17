@@ -14,15 +14,22 @@ This material has one of the most basic shaders avaliable
     />
     
     <rendering_passes>
-        <solid_first_pass
-            use_generic_shader="true"
-        />
-        <solid_second_pass
-            use_generic_shader="true"
-        />
-        <shadow_pass
-            use_generic_shader="true"
-        />        
+        <solid_first_pass>
+            <vertex_shader code="generic">
+            <fragment_shader code="generic">
+        </solid_first_pass>
+        
+        <solid_second_pass>
+            <vertex_shader code="generic">
+            <fragment_shader code="generic">
+        </solid_second_pass>
+        
+        <shadow_pass>
+            <vertex_shader code="generic">
+            <geometry_shader code="generic">
+            <fragment_shader code="generic">
+        </shadow_pass>
+        
     </rendering_passes>
 
 </material_shaders>

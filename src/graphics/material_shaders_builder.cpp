@@ -108,15 +108,17 @@ std::string MaterialShadersBuilder::genFirstPassVertexShaderSource(
             readShaderFile("material_shaders/generic_per_instance_vertex_data.vert");
     }
             
-    if (m_generic_solid_first_pass_vertex_shader.empty())
+    if (m_generic_shader_sources.find("generic_solid_first_pass.vert")
+        ==m_generic_shader_sources.end())
     {
-        m_generic_solid_first_pass_vertex_shader = ShaderFilesManager::getInstance()->
-            readShaderFile("material_shaders/generic_solid_first_pass.vert");
+        m_generic_shader_sources["generic_solid_first_pass.vert"] = 
+            ShaderFilesManager::getInstance()->readShaderFile
+            ("material_shaders/generic_solid_first_pass.vert");
     }
     
     code << m_generic_per_instance_vertex_data;
     code << "\n";
-    code << m_generic_solid_first_pass_vertex_shader;
+    code << m_generic_shader_sources["generic_solid_first_pass.vert"];
     
     return code.str();
 } //genFirstPassVertexShaderSource
@@ -124,7 +126,7 @@ std::string MaterialShadersBuilder::genFirstPassVertexShaderSource(
 // ----------------------------------------------------------------------------
 std::string MaterialShadersBuilder::getMaterialShaderKey(const std::string &file,
                                                          const std::string &rendering_pass,
-                                                        unsigned type)
+                                                         unsigned type)
 {
     XMLNode *root = file_manager->createXMLTree(file_manager->getShader(file));
     const XMLNode *flags_node = root->getNode("flags");
@@ -143,12 +145,16 @@ std::string MaterialShadersBuilder::getMaterialShaderKey(const std::string &file
 }
 
 // ----------------------------------------------------------------------------
-GLuint MaterialShadersBuilder::loadMaterialProgram(const XMLNode *flags_node,
-                                                   const XMLNode *rendering_pass_node)
+GLuint MaterialShadersBuilder::loadMaterialProgram(const XMLNode &flags_node,
+                                                   const XMLNode &rendering_pass_node)
 {
-    //TODO
+    for(unsigned int i=0; i<rendering_pass_node.getNumNodes(); i++)
+    {
+        const XMLNode *shader_node = rendering_pass_node.getNode(i);
+        
+            //TODO
+    }
 }
-    
 
 // ----------------------------------------------------------------------------
 MaterialShadersBuilder::MaterialShadersBuilder()
@@ -181,6 +187,13 @@ GLuint MaterialShadersBuilder::getMaterialProgram(const std::string &file,
         
     XMLNode *root = file_manager->createXMLTree(file_manager->getShader(file));
     const XMLNode *flags_node = root->getNode("flags");
+    if(!flags_node)
+    {
+        Log::error("MaterialShadersBuilder",
+                    "Incomplete material file, no flags node: %s",
+                    file);
+        return 0;
+    }
     const XMLNode *rendering_passes_node = root->getNode("rendering_passes");
     if(!rendering_passes_node)
     {
@@ -189,7 +202,17 @@ GLuint MaterialShadersBuilder::getMaterialProgram(const std::string &file,
                     file);
         return 0;
     }
-    return loadMaterialProgram(flags_node, rendering_passes_node->getNode(rendering_pass));
+    
+    const XMLNode *rendering_pass_node = rendering_passes_node->getNode(rendering_pass);
+    if(!rendering_pass_node)
+    {
+        Log::error("MaterialShadersBuilder",
+                   "Cannot load %s shader, missing rendering node in file %s",
+                   rendering_pass, file);
+        return 0;
+    }
+    
+    return loadMaterialProgram(*flags_node, *rendering_pass_node);
 }
 
 // ------------------------------------------------------------------------
@@ -198,19 +221,31 @@ void MaterialShadersBuilder::addMaterialShaders(const std::string &file)
     XMLNode *root = file_manager->createXMLTree(file_manager->getShader(file));
     const XMLNode *flags_node = root->getNode("flags");
     const XMLNode *rendering_passes_node = root->getNode("rendering_passes");
-    
+
+    if(!flags_node)
+    {
+        Log::error("MaterialShadersBuilder",
+                   "Incomplete material file, no flags node: %s",
+                   file);
+        return;
+    }    
     if(!rendering_passes_node)
     {
         Log::error("MaterialShadersBuilder",
-                    "Incomplete material file, no rendering_passes node: %s",
-                    file);
+                   "Incomplete material file, no rendering_passes node: %s",
+                   file);
         return;
     }
     
-    loadMaterialProgram(flags_node, rendering_passes_node->getNode("solid_first_pass"));
-    loadMaterialProgram(flags_node, rendering_passes_node->getNode("solid_second_pass"));
-    loadMaterialProgram(flags_node, rendering_passes_node->getNode("shadow_pass"));
-    
+    for(unsigned int i=0; i<rendering_passes_node->getNumNodes(); i++)
+    {
+        const XMLNode *rendering_pass_node = rendering_passes_node->getNode(i);
+        if((rendering_pass_node->getName() != "shadow_pass") ||
+           (CVS->isShadowEnabled()))
+        {
+            loadMaterialProgram(*flags_node, *rendering_pass_node);
+        }        
+    }
 }   //addMaterialShaders
 
 #endif   // !SERVER_ONLY

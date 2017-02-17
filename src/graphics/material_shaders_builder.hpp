@@ -43,7 +43,10 @@ private:
      * Generic shader parts: stored in order to load them only once
      */
     std::string m_generic_per_instance_vertex_data;
-    std::string m_generic_solid_first_pass_vertex_shader;
+    /*
+     * Map from a rendering pass and a shader type to a generic shader source
+     */
+    std::unordered_map<std::string, std::string> m_generic_shader_sources;
     
     /**
      * Map from a rendering pass (solid_first_pass, solid_second_pass, shadow_pass, rsm_pass)
@@ -76,8 +79,8 @@ private:
                                      const std::string &rendering_pass,
                                      unsigned type);
     // ------------------------------------------------------------------------
-    GLuint loadMaterialProgram(const XMLNode *flags_node,
-                               const XMLNode *rendering_pass_node);
+    GLuint loadMaterialProgram(const XMLNode &flags_node,
+                               const XMLNode &rendering_pass_node);
     
 public:
     MaterialShadersBuilder();
